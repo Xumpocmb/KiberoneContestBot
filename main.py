@@ -37,7 +37,7 @@ commands = [
 
 class Form(StatesGroup):
     waiting_for_fio = State()
-    waiting_for_video = State()
+    waiting_for_photo = State()
 
 
 @dp.message(Command("start"))
@@ -65,30 +65,31 @@ async def process_fio(message: Message, state: FSMContext):
     if message.text:
         fio = message.text.strip().title().replace(" ", "_")
         await state.update_data(fio=fio)
-        await message.answer(f"Спасибо, я записал ФИО! ✍️ \nТеперь отправь видео 📹. \nЕсли передумаешь, отправь /cancel.")
-        await state.set_state(Form.waiting_for_video)
+        await message.answer(f"Спасибо, я записал ФИО! ✍️ \nТеперь отправь фото 📹. \nЕсли передумаешь, отправь /cancel.")
+        await state.set_state(Form.waiting_for_photo)
     else:
         await message.answer("⚠️ Пожалуйста, отправьте ФИО. ⚠️ \nЕсли передумали, отправьте /cancel.")
 
 
-@dp.message(Form.waiting_for_video)
-async def process_video(message: Message, state: FSMContext):
-    if message.video:
+@dp.message(Form.waiting_for_photo)
+async def process_file(message: Message, state: FSMContext):
+    if message.photo:
         data = await state.get_data()
         fio = data.get("fio", "unknown")
 
-        video_file = await bot.get_file(message.video.file_id)
-        video_path = f"videos/{fio}.mp4"
+        photo_file = await bot.get_file(message.photo[-1].file_id)
+        file_extension = photo_file.file_path.split('.')[-1]
+        photo_path = f"photos/{fio}.{file_extension}"
 
-        os.makedirs("videos", exist_ok=True)
+        os.makedirs("photos", exist_ok=True)
 
-        await bot.download_file(video_file.file_path, video_path)
-        await message.answer("👏 Отлично! 💾 Видео успешно сохранено!")
-        logger.info(f"Video saved: {video_path}")
+        await bot.download_file(photo_file.file_path, photo_path)
+        await message.answer("👏 Отлично! 💾 Фото успешно сохранено!")
+        logger.info(f"Photo saved: {photo_path}")
 
         await state.clear()
     else:
-        await message.answer("⚠️ Пожалуйста, отправьте видео. ⚠️ \nЕсли передумали, отправьте /cancel.")
+        await message.answer("⚠️ Пожалуйста, отправьте фото (не файлом). ⚠️ \nЕсли передумали, отправьте /cancel.")
 
 
 @dp.errors()
